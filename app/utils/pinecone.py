@@ -51,10 +51,13 @@ def store_vectors(documents):
 
 
 def search_with_query(query):
+    index = global_resources.index
     query_embedding = get_embedding(query)
 
     # Assuming Pinecone index is set up and initialized
+    print(query_embedding)
     results = index.query(vector=query_embedding, top_k=5, include_metadata=True)
+    print(results)
     return results
 
 

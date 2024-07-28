@@ -56,6 +56,7 @@ def search():
     data = request.json
     query = data.get("query")
 
+    print(query)
     if not query:
         return jsonify({"error": "Query is required"}), 400
 
