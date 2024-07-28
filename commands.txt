@@ -1,0 +1,5 @@
+// Create environment Python 3.3+
+python -m venv surveil-ai-env
+
+// Activate env
+source surveil-ai-env/bin/activate
