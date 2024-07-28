@@ -12,6 +12,8 @@ class GlobalResources:
 
     def init_pinecone(self):
         pinecone.init(api_key=os.getenv("PINECONE_API_KEY"))
+        indexes = pinecone.list_indexes()
+        print(indexes)
         index_name = os.getenv("PINECONE_INDEX_NAME")
         # pinecone.init(api_key=current_app.config["PINECONE_API_KEY"])
         # index_name = current_app.config["PINECONE_INDEX_NAME"]

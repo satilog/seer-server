@@ -18,6 +18,8 @@ def perform_crawl(start_url, depth, task_id):
     while queue:
         current_url, current_depth = queue.popleft()
 
+        print("Begin processing url: " + current_url)
+
         if current_depth > depth or current_url in tasks[task_id]["visited_urls"]:
             continue
 
@@ -40,12 +42,18 @@ def perform_crawl(start_url, depth, task_id):
             soup = BeautifulSoup(html_content, "html.parser")
 
             texts = soup.find_all("p")
+
+            print("Found " + str(len(texts)) + " text chunks in url")
+
             for text in texts:
                 content = text.get_text().strip()
                 if content:
                     document = {"task_id": task_id, "url": current_url, "text": content}
                     batch.append(document)
                     if len(batch) >= 10:
+                        print()
+                        print("Indexing batch to vector store!!!")
+                        print()
                         store_vectors(batch)
                         batch = []
 
@@ -63,6 +71,7 @@ def perform_crawl(start_url, depth, task_id):
 
         except Exception as e:
             print(f"Error processing {current_url}: {e}")
+            tasks[task_id]["status"] = "failed"
             continue
 
     if batch:
@@ -76,6 +85,7 @@ def start_crawl(start_url, depth=2):
         return {"error": "Start URL is required"}, 400
 
     task_id = str(uuid.uuid4())
+    print(task_id)
     tasks[task_id] = {"status": "in_progress", "visited_urls": set()}
 
     perform_crawl(start_url, depth, task_id)
