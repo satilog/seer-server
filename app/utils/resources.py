@@ -2,6 +2,7 @@ import os
 import time
 
 import pinecone
+from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
 
 
@@ -11,15 +12,23 @@ class GlobalResources:
         self.embedding_model = None
 
     def init_pinecone(self):
-        pinecone.init(api_key=os.getenv("PINECONE_API_KEY"))
+        pinecone = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+
         indexes = pinecone.list_indexes()
         print(indexes)
+
         index_name = os.getenv("PINECONE_INDEX_NAME")
+        print(index_name)
         # pinecone.init(api_key=current_app.config["PINECONE_API_KEY"])
         # index_name = current_app.config["PINECONE_INDEX_NAME"]
 
-        if index_name not in pinecone.list_indexes():
+        # if index_name not in pinecone.list_indexes()['indexes']:
+        #     pinecone.create_index(name=index_name, dimension=1536, metric="cosine")
+        if not any(index["name"] == index_name for index in indexes):
             pinecone.create_index(name=index_name, dimension=1536, metric="cosine")
+            print(f"Index '{index_name}' created.")
+        else:
+            print(f"Index '{index_name}' already exists.")
 
         self.index = pinecone.Index(index_name)
 
