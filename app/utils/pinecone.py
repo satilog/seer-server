@@ -57,7 +57,7 @@ def search_with_query(query):
     # Assuming Pinecone index is set up and initialized
     print(query_embedding)
     results = index.query(vector=query_embedding, top_k=5, include_metadata=True)
-    print(results)
+    # print(results)
     return results
 
 

@@ -19,27 +19,10 @@ from flask_cors import CORS
 from app.utils.crawler import get_crawl_status, start_crawl
 from app.utils.pinecone import search_with_query
 from app.utils.resources import global_resources
+from openai import OpenAI
 
-# def create_app():
-#     app = Flask(__name__)
-#     # app.config["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-#     # app.config["PINECONE_API_KEY"] = os.getenv("PINECONE_API_KEY")
-#     # app.config["PINECONE_INDEX_NAME"] = os.getenv("PINECONE_INDEX_NAME")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-#     with app.app_context():
-#         # Initialize Pinecone and load embedding models
-#         global_resources.init_pinecone()
-#         global_resources.load_embedding_models()
-
-#     from app.routes import main as main_blueprint
-
-#     app.register_blueprint(main_blueprint)
-
-#     from app.routes.common_routes import common_routes as common_blueprint
-
-#     app.register_blueprint(common_blueprint, url_prefix="/api/v1/common")
-
-#     return app
 
 app = Flask(__name__)
 CORS(app)
@@ -65,6 +48,7 @@ def crawl():
     data = request.json
     start_url = data.get("start_url")
     depth = data.get("depth", 2)  # Default depth is 2 if not provided
+    print(start_url)
 
     response, status_code = start_crawl(start_url, depth)
     return jsonify(response), status_code
@@ -81,12 +65,58 @@ def status():
 def search():
     data = request.json
     query = data.get("query")
+    print(query)
 
     if not query:
         return jsonify({"error": "Query is required"}), 400
 
     results = search_with_query(query)
-    return jsonify(results), 200
+    
+    first_3_results = results.matches[:3]
+    # text looks like this: 'metadata': {'task_id': '4eec4872-b8a2-4cc5-80b8-1092512cd5af',
+            #   'text': '
+    # iterate over the first 3 results and get the text
+    print(first_3_results)
+# first_3_results looks like this: [{'id': '4db458af-9142-410d-8407-b7bd1d0f96b9',
+#  'metadata': {'task_id': '4eec4872-b8a2-4cc5-80b8-1092512cd5af',
+#               'text': 'ensurepip — Bootstrapping the pip installer — Python '
+    result_text = ""
+    for result in first_3_results:
+        result_text += result['metadata']['text']
+    print(result_text)
+            
+    # for result in first_3_results:
+    #     print(result)
+        
+    #     print(result.metadata.url)
+    #     print(result.metadata.task_id)
+    
+    prompt = f"""
+    Answer the question that the user might have asked based on the following text:
+    {result_text}
+    1. analyze the question which is {query}
+    2. analyze the text
+    3. answer the question based on the text provided.
+    4. if the answer consists of code, provide the code snippet in ``` ``` format.
+    5. if the answer consists of a link, provide the link.
+    6. if the answer consists of a list, provide the list.
+    7. if the answer consists of a table, provide the table.
+    8. Only provide the answer to the question asked.
+    """
+    
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": query}
+        ],
+        max_tokens=1000,
+    )
+    answer = response.choices[0].message.content
+    print(answer)
+    
+    # return answer in json format
+    return jsonify({"answer": answer}), 200
 
 
 if __name__ == "__main__":
