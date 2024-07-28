@@ -1,6 +1,7 @@
 import time
 import uuid
 from collections import deque
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -8,12 +9,28 @@ from bs4 import BeautifulSoup
 from app.utils.pinecone import store_vectors
 
 # In-memory data stores for tasks
-tasks = {}
+tasks = {"task_id": {"visited_urls": set(), "status": ""}}
+
+
+# Function to split text into chunks less than 7000 tokens
+def split_text_into_chunks(text, chunk_size):
+    words = text.split()
+    for i in range(0, len(words), chunk_size):
+        yield " ".join(words[i : i + chunk_size])
+
+
+def is_same_domain(url, domain):
+    parsed_url = urlparse(url)
+    return parsed_url.netloc == domain
 
 
 def perform_crawl(start_url, depth, task_id):
     queue = deque([(start_url, 0)])
     batch = []
+    chunk_size = 4000  # Define the chunk size
+
+    parsed_start_url = urlparse(start_url)
+    domain = parsed_start_url.netloc
 
     while queue:
         current_url, current_depth = queue.popleft()
@@ -41,14 +58,12 @@ def perform_crawl(start_url, depth, task_id):
             html_content = response.content
             soup = BeautifulSoup(html_content, "html.parser")
 
-            texts = soup.find_all("p")
+            content = soup.get_text(separator="\n").strip()
 
-            print("Found " + str(len(texts)) + " text chunks in url")
-
-            for text in texts:
-                content = text.get_text().strip()
-                if content:
-                    document = {"task_id": task_id, "url": current_url, "text": content}
+            if content:
+                chunks = split_text_into_chunks(content, chunk_size)
+                for chunk in chunks:
+                    document = {"task_id": task_id, "url": current_url, "text": chunk}
                     batch.append(document)
                     if len(batch) >= 10:
                         print()
@@ -57,14 +72,18 @@ def perform_crawl(start_url, depth, task_id):
                         store_vectors(batch)
                         batch = []
 
+            print("Processed content length: " + str(len(content)))
+
             tasks[task_id]["visited_urls"].add(current_url)
 
             if current_depth < depth:
                 links = soup.find_all("a")
                 for link in links:
                     href = link.get("href")
-                    if href and href.startswith("http"):
-                        queue.append((href, current_depth + 1))
+                    if href:
+                        full_url = urljoin(current_url, href)
+                        if is_same_domain(full_url, domain):
+                            queue.append((full_url, current_depth + 1))
 
             # Artificial stop to avoid server overload
             time.sleep(1)  # Wait 1 second before processing the next URL
