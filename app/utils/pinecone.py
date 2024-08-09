@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 import uuid
 
 import numpy as np
@@ -60,6 +61,30 @@ def search_with_query(query):
     # print(results)
     return results
 
+# function to check if there is data of the same domain
+
+def is_data_of_same_domain_as_pinecone_index(url):
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+    
+    try:
+        # Create a dummy vector with the correct dimension (1536 in this case)
+        dummy_vector = [0] * 1536
+        
+        # Retrieve top_k results from Pinecone index using the correct dimensional vector
+        results = global_resources.index.query(vector=dummy_vector, top_k=100, include_metadata=True)
+        print(len(results['matches']), " results retrieved")
+        
+        # Check if any of the retrieved results have the same domain in their metadata
+        for match in results['matches']:
+            stored_domain = urlparse(match['metadata']['url']).netloc
+            if stored_domain == domain:
+                return True
+        return False
+    except Exception as e:
+        print(e)
+        return False
+    
 
 def stringify_metadata(metadata):
     import datetime

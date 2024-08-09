@@ -1,10 +1,8 @@
 import os
 import time
 
-import pinecone
-from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
-
+from pinecone import Pinecone
 
 class GlobalResources:
     def __init__(self):
