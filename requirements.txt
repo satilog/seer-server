@@ -4,3 +4,5 @@ opencv-python==4.9.0.80
 pandas==2.1.1
 pinecone-client==2.0.4
 python-dotenv==1.0.1
+openai==1.37.1
+sentence-transformers==3.0.1
