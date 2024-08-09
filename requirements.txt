@@ -6,3 +6,6 @@ pinecone-client==2.0.4
 python-dotenv==1.0.1
 openai==1.37.1
 sentence-transformers==3.0.1
+Flask-Cors==4.0.1
+bs4==0.0.2
+numpy==2.0.1
