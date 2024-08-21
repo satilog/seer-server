@@ -2,6 +2,7 @@ import time
 import uuid
 from collections import deque
 from urllib.parse import urljoin, urlparse
+from .pinecone import is_data_of_same_domain_as_pinecone_index
 
 import requests
 from bs4 import BeautifulSoup
@@ -31,6 +32,9 @@ def perform_crawl(start_url, depth, task_id):
 
     parsed_start_url = urlparse(start_url)
     domain = parsed_start_url.netloc
+    
+    if is_data_of_same_domain_as_pinecone_index(start_url):
+        return
 
     while queue:
         current_url, current_depth = queue.popleft()
